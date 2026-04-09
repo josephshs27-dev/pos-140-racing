@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerencia - MultiTenant POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl font-bold tracking-wider">PANEL GERENCIAL</h1>
+            <div class="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
+                <span class="text-xs text-gray-400 mr-2 uppercase font-bold tracking-widest ml-2">Empresa Activa:</span>
+                <select id="select-empresa" onchange="cambiarEmpresa()" class="bg-slate-700 text-white border-none rounded p-2 text-sm font-black focus:ring-2 focus:ring-blue-500 cursor-pointer uppercase">
+                    <option value="eventos">🏁 140 Racing Events</option>
+                    <option value="restaurante">🍔 Restaurante</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex gap-4 items-center">
+            <span id="status-nube" class="bg-yellow-500 text-xs px-3 py-1 rounded-full font-semibold text-slate-900">Sincronizando...</span>
+            <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded font-semibold transition shadow-lg border border-blue-500">Terminal de Venta ➔</a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6 mt-4">
+        
+        <div class="flex flex-col lg:flex-row gap-6">
+            <section class="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4" id="borde-form">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 border-b pb-2">Agregar al Catálogo</h2>
+                <form id="form-producto" class="space-y-4">
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Servicio/Producto</label><input type="text" id="input-nombre" required class="w-full border-2 border-gray-200 rounded-xl p-3 uppercase font-bold focus:border-blue-500 focus:outline-none" placeholder="Ej. Inscripción Élite"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Precio Final ($)</label><input type="number" step="0.01" id="input-precio" required class="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-blue-700 focus:border-blue-500 focus:outline-none" placeholder="0.00"></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Categoría Visual</label>
+                        <select id="input-color" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none font-bold uppercase text-sm text-gray-700">
+                        </select>
+                    </div>
+                    <button type="submit" id="btn-guardar-producto" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl mt-4 transition active:scale-95 shadow-md">+ GUARDAR EN LA NUBE</button>
+                </form>
+            </section>
+
+            <section class="w-full lg:w-2/3 bg-white rounded-2xl shadow-sm p-6">
+                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                    <h2 class="text-lg font-bold text-gray-800">Catálogo Global de <span id="lbl-catalogo" class="text-blue-600 uppercase">Eventos</span></h2>
+                </div>
+                <div class="overflow-x-auto h-[380px] border border-gray-200 rounded-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider sticky top-0 shadow-sm"><th class="p-4 border-b">Item</th><th class="p-4 border-b">Categoría</th><th class="p-4 border-b">Precio</th><th class="p-4 border-b text-center">Acción</th></tr></thead>
+                        <tbody id="tabla-inventario" class="text-sm"><tr><td colspan="4" class="p-4 text-center text-gray-400">Cargando inventario...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <section class="w-full bg-white rounded-2xl shadow-sm p-6 mt-6 border-t-4 border-green-500">
+            <div class="flex justify-between items-start border-b pb-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-gray-800 uppercase mb-2">Módulo Contable</h2>
+                    <div class="flex gap-2 items-center">
+                        <select id="filtro-mes" onchange="cargarDatosNube()" class="border-2 border-gray-200 rounded-lg p-2 text-sm font-bold bg-gray-50 uppercase text-blue-700 outline-none">
+                            <option value="todos">Todos los meses</option>
+                            <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                        <select id="filtro-anio" onchange="cargarDatosNube()" class="border-2 border-gray-200 rounded-lg p-2 text-sm font-bold bg-gray-50 text-slate-700 outline-none">
+                            <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-right flex gap-4">
+                    <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 shadow-inner min-w-[150px]">
+                        <p class="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Total Digitales</p>
+                        <p id="txt-total-digital" class="text-2xl font-black text-blue-700">$ 0.00</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-2xl border-2 border-green-200 shadow-inner min-w-[150px]">
+                        <p class="text-[10px] font-bold text-green-800 uppercase tracking-widest mb-1">Total Efectivo</p>
+                        <p id="txt-total-efectivo" class="text-2xl font-black text-green-700">$ 0.00</p>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-2xl border-2 border-slate-700 shadow-inner min-w-[200px]">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ingresos Globales</p>
+                        <p id="txt-gran-total" class="text-4xl font-black text-white">$ 0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto border border-gray-200 rounded-xl h-[500px]">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider sticky top-0 shadow-sm">
+                            <th class="p-4 font-semibold">Caja / Fecha</th>
+                            <th class="p-4 font-semibold">Cliente</th>
+                            <th class="p-4 font-semibold">Método / Ref.</th>
+                            <th class="p-4 font-semibold">Consumo</th>
+                            <th class="p-4 font-semibold text-right">Total</th>
+                            <th class="p-4 font-semibold text-center">Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ventas" class="text-sm">
+                        <tr><td colspan="6" class="p-8 text-center text-gray-400">Cargando historial...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6 flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <button onclick="cargarDatosNube()" class="text-blue-600 hover:text-blue-800 font-bold text-sm uppercase tracking-widest flex items-center gap-2">🔄 Refrescar Pantalla</button>
+                <button onclick="exportarExcel()" class="bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 text-lg uppercase tracking-wider border-2 border-blue-500">
+                    <span>📊</span> Descargar Reporte para Contador
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- PEGA TUS CREDENCIALES AQUÍ ---
+        const supabaseUrl = 'https://wwysklismkatoqnnbfvf.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3eXNrbGlzbWthdG9xbm5iZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODA3OTEsImV4cCI6MjA5MTI1Njc5MX0.9vivWgdHAq81SzjyHsDcrkIAtym81bk5UVxWPGtnDBM';
+        
+        const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let empresaActual = localStorage.getItem('empresaGlobal140') || 'eventos';
+        document.getElementById('select-empresa').value = empresaActual;
+        
+        const fechaHoy = new Date();
+        const mesStr = String(fechaHoy.getMonth() + 1).padStart(2, '0');
+        document.getElementById('filtro-mes').value = mesStr;
+
+        let ventasActuales = [];
+
+        // FUNCIÓN NUEVA: Actualiza el desplegable de categorías según el negocio
+        function actualizarCategorias() {
+            const selectColor = document.getElementById('input-color');
+            selectColor.innerHTML = ''; // Vaciamos las opciones actuales
+
+            if (empresaActual === 'eventos') {
+                selectColor.innerHTML = `
+                    <option value="blue">General / Inscripciones</option>
+                `;
+            } else if (empresaActual === 'restaurante') {
+                selectColor.innerHTML = `
+                    <option value="orange">Comida</option>
+                    <option value="blue">Bebidas</option>
+                    <option value="green">Extras</option>
+                    <option value="purple">Para llevar</option>
+                `;
+            }
+        }
+
+        function cambiarEmpresa() { 
+            empresaActual = document.getElementById('select-empresa').value;
+            localStorage.setItem('empresaGlobal140', empresaActual);
+            
+            document.getElementById('lbl-catalogo').innerText = empresaActual === 'eventos' ? '140 Racing Events' : 'Restaurante';
+            document.getElementById('borde-form').className = empresaActual === 'eventos' ? 'w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4 border-blue-600' : 'w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4 border-orange-500';
+            
+            actualizarCategorias(); // Llamamos a la función de rediseño
+            cargarDatosNube();
+        }
+
+        async function cargarDatosNube() {
+            const etiquetaNube = document.getElementById('status-nube');
+            etiquetaNube.innerText = "Sincronizando...";
+            
+            try {
+                const { data: invData, error: invError } = await clienteSupabase.from('inventario').select('*').eq('negocio', empresaActual).order('id', { ascending: false });
+                if (invError) throw invError;
+                renderizarInventario(invData);
+
+                const mesSelec = document.getElementById('filtro-mes').value;
+                const anioSelec = document.getElementById('filtro-anio').value;
+                
+                const { data: venData, error: venError } = await clienteSupabase.from('ventas').select('*').eq('negocio', empresaActual).order('id', { ascending: false });
+                if (venError) throw venError;
+
+                ventasActuales = venData.filter(v => {
+                    if (mesSelec === 'todos') return true;
+                    const partesFecha = v.fecha.split('/'); 
+                    if(partesFecha.length >= 3) {
+                        const mesVenta = partesFecha[1].padStart(2, '0');
+                        const anioVenta = partesFecha[2].substring(0, 4);
+                        return (mesVenta === mesSelec && anioVenta === anioSelec);
+                    }
+                    return true;
+                });
+
+                renderizarVentas(ventasActuales);
+
+                etiquetaNube.innerText = "☁️ Sincronizado";
+                etiquetaNube.className = "bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm";
+            } catch (error) {
+                console.error(error);
+                etiquetaNube.innerText = "Error";
+                etiquetaNube.className = "bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm";
+            }
+        }
+
+        function renderizarInventario(datos) {
+            const tbody = document.getElementById('tabla-inventario');
+            tbody.innerHTML = '';
+            if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Catálogo vacío.</td></tr>`; return; }
+            datos.forEach(p => {
+                // Traducción visual del color para la tabla
+                let nombreCategoria = "";
+                if(empresaActual === 'eventos') {
+                    nombreCategoria = "General";
+                } else {
+                    if(p.color === 'orange') nombreCategoria = "Comida";
+                    if(p.color === 'blue') nombreCategoria = "Bebidas";
+                    if(p.color === 'green') nombreCategoria = "Extras";
+                    if(p.color === 'purple') nombreCategoria = "Para llevar";
+                }
+
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-4 font-bold text-gray-800 uppercase text-xs">${p.nombre}</td><td class="p-4"><span class="bg-${p.color}-100 text-${p.color}-800 px-2 py-1 rounded text-[10px] font-black uppercase">${nombreCategoria}</span></td><td class="p-4 font-black text-blue-700 text-lg">$${Number(p.precio).toFixed(2)}</td><td class="p-4 text-center"><button onclick="eliminarProducto(${p.id})" class="text-red-500 font-bold px-3 py-2 rounded-lg text-xs uppercase hover:bg-red-50">Borrar</button></td></tr>`;
+            });
+        }
+
+        document.getElementById('form-producto').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-guardar-producto');
+            btn.innerText = "ENVIANDO..."; btn.disabled = true;
+
+            const n = { id: Date.now(), nombre: document.getElementById('input-nombre').value, precio: parseFloat(document.getElementById('input-precio').value), color: document.getElementById('input-color').value, negocio: empresaActual };
+            const { error } = await clienteSupabase.from('inventario').insert([n]);
+            if (!error) { this.reset(); cargarDatosNube(); }
+            btn.innerText = "+ GUARDAR"; btn.disabled = false;
+        });
+
+        async function eliminarProducto(id) {
+            if(confirm("¿Eliminar producto?")) {
+                const { error } = await clienteSupabase.from('inventario').delete().eq('id', id).eq('negocio', empresaActual);
+                if(!error) cargarDatosNube();
+            }
+        }
+
+        function renderizarVentas(datos) {
+            const tbody = document.getElementById('tabla-ventas');
+            let tEfectivo = 0, tDigital = 0; tbody.innerHTML = '';
+
+            if(datos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-gray-400 font-bold text-lg">No hay ventas en el periodo seleccionado.</td></tr>`;
+                document.getElementById('txt-gran-total').innerText = "$ 0.00"; document.getElementById('txt-total-efectivo').innerText = "$ 0.00"; document.getElementById('txt-total-digital').innerText = "$ 0.00"; return;
+            }
+
+            datos.forEach(v => {
+                const totalNum = Number(v.total);
+                if(v.metodo === 'efectivo') tEfectivo += totalNum; else tDigital += totalNum;
+
+                let items = v.productos.map(p => p.nombre).join(', ');
+                let badgeMetodo = v.metodo === 'efectivo' ? `<span class="bg-green-100 text-green-800 font-black px-2 py-1 rounded text-[10px] uppercase">💵 Efectivo</span>` : `<span class="bg-blue-100 text-blue-800 font-black px-2 py-1 rounded text-[10px] uppercase block mb-1">📱 ${v.metodo}</span><span class="text-[9px] font-mono text-gray-500">Ref: ${v.referencia}</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50 transition-colors">
+                        <td class="p-4"><p class="font-mono text-gray-800 font-bold text-xs">${v.id}</p><p class="text-[10px] text-gray-500">${v.fecha}</p></td>
+                        <td class="p-4"><p class="font-bold text-gray-800 text-[11px] uppercase">${v.cliente_nombre}</p><p class="text-[10px] text-gray-500">RUC: ${v.cliente_id}</p></td>
+                        <td class="p-4">${badgeMetodo}</td>
+                        <td class="p-4 text-[10px] text-gray-600 max-w-[200px] uppercase font-semibold leading-tight truncate" title="${items}">${items}</td>
+                        <td class="p-4 font-black text-slate-800 text-right text-lg">$${totalNum.toFixed(2)}</td>
+                        <td class="p-4 text-center"><button onclick="anularVenta(${v.id})" class="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase underline">Anular</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('txt-total-efectivo').innerText = `$ ${tEfectivo.toFixed(2)}`;
+            document.getElementById('txt-total-digital').innerText = `$ ${tDigital.toFixed(2)}`;
+            document.getElementById('txt-gran-total').innerText = `$ ${(tEfectivo + tDigital).toFixed(2)}`;
+        }
+
+        async function anularVenta(id) {
+            if(confirm("¿Estás seguro de anular esta factura? Esta acción borrará el registro contable de este cobro.")) {
+                const { error } = await clienteSupabase.from('ventas').delete().eq('id', id);
+                if(!error) cargarDatosNube(); else alert("Error al anular.");
+            }
+        }
+
+        function exportarExcel() {
+            if(ventasActuales.length === 0) return alert("No hay datos para exportar en este mes.");
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "FECHA,COMPROBANTE CAJA,CLIENTE,ID/RUC,METODO PAGO,REFERENCIA,REGIMEN SRI,SUBTOTAL (Base Imponible),IVA,TOTAL FACTURA,DETALLE CONSUMO\r\n";
+
+            ventasActuales.forEach(v => {
+                let ivaPorcentaje = (v.regimen && v.regimen.includes('15%')) ? 0.15 : 0.00;
+                let total = Number(v.total);
+                let subtotal = total / (1 + ivaPorcentaje);
+                let ivaMonto = total - subtotal;
+                let itemsStr = v.productos.map(p => p.nombre).join(' | ').replace(/,/g, '');
+
+                let row = `"${v.fecha}","${v.id}","${v.cliente_nombre}","${v.cliente_id}","${v.metodo.toUpperCase()}","${v.referencia}","${v.regimen}",${subtotal.toFixed(2)},${ivaMonto.toFixed(2)},${total.toFixed(2)},"${itemsStr}"`;
+                csvContent += row + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            
+            const mesSelec = document.getElementById('filtro-mes').options[document.getElementById('filtro-mes').selectedIndex].text;
+            const anioSelec = document.getElementById('filtro-anio').value;
+            link.setAttribute("download", `Reporte_Contable_${empresaActual.toUpperCase()}_${mesSelec}_${anioSelec}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        cambiarEmpresa(); // Inicializa el sistema con la empresa y categorías correctas
+    </script>
+</body>
+</html>
