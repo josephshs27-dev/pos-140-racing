@@ -14,8 +14,8 @@
             <div class="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
                 <span class="text-xs text-gray-400 mr-2 uppercase font-bold tracking-widest ml-2">Empresa Activa:</span>
                 <select id="select-empresa" onchange="cambiarEmpresa()" class="bg-slate-700 text-white border-none rounded p-2 text-sm font-black focus:ring-2 focus:ring-blue-500 cursor-pointer uppercase">
-                    <option value="eventos">🏁 140 Racing Events</option>
-                    <option value="restaurante">🍔 Restaurante</option>
+                    <option value="eventos">🏁 140 Racing Events (15%)</option>
+                    <option value="restaurante">🍔 Restaurante (RIMPE 0%)</option>
                 </select>
             </div>
         </div>
@@ -35,8 +35,7 @@
                     <div><label class="block text-sm font-medium text-gray-700 mb-1">Precio Final ($)</label><input type="number" step="0.01" id="input-precio" required class="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-blue-700 focus:border-blue-500 focus:outline-none" placeholder="0.00"></div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Categoría Visual</label>
-                        <select id="input-color" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none font-bold uppercase text-sm text-gray-700">
-                        </select>
+                        <select id="input-color" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none font-bold uppercase text-sm text-gray-700"></select>
                     </div>
                     <button type="submit" id="btn-guardar-producto" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl mt-4 transition active:scale-95 shadow-md">+ GUARDAR EN LA NUBE</button>
                 </form>
@@ -58,7 +57,7 @@
         <section class="w-full bg-white rounded-2xl shadow-sm p-6 mt-6 border-t-4 border-green-500">
             <div class="flex justify-between items-start border-b pb-4 mb-6">
                 <div>
-                    <h2 class="text-2xl font-black text-gray-800 uppercase mb-2">Módulo Contable</h2>
+                    <h2 class="text-2xl font-black text-gray-800 uppercase mb-2">Módulo Contable SRI</h2>
                     <div class="flex gap-2 items-center">
                         <select id="filtro-mes" onchange="cargarDatosNube()" class="border-2 border-gray-200 rounded-lg p-2 text-sm font-bold bg-gray-50 uppercase text-blue-700 outline-none">
                             <option value="todos">Todos los meses</option>
@@ -90,11 +89,11 @@
                     <thead>
                         <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider sticky top-0 shadow-sm">
                             <th class="p-4 font-semibold">Caja / Fecha</th>
-                            <th class="p-4 font-semibold">Cliente</th>
+                            <th class="p-4 font-semibold">Datos Cliente (SRI)</th>
                             <th class="p-4 font-semibold">Método / Ref.</th>
                             <th class="p-4 font-semibold">Consumo</th>
                             <th class="p-4 font-semibold text-right">Total</th>
-                            <th class="p-4 font-semibold text-center">Eliminar</th>
+                            <th class="p-4 font-semibold text-center">Acción</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-ventas" class="text-sm">
@@ -105,8 +104,8 @@
 
             <div class="mt-6 flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <button onclick="cargarDatosNube()" class="text-blue-600 hover:text-blue-800 font-bold text-sm uppercase tracking-widest flex items-center gap-2">🔄 Refrescar Pantalla</button>
-                <button onclick="exportarExcel()" class="bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 text-lg uppercase tracking-wider border-2 border-blue-500">
-                    <span>📊</span> Descargar Reporte para Contador
+                <button onclick="exportarExcelSRI()" class="bg-green-600 hover:bg-green-700 text-white font-black px-8 py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 text-lg uppercase tracking-wider border-2 border-green-500">
+                    <span>📑</span> Generar Reporte ATS (SRI)
                 </button>
             </div>
         </section>
@@ -114,8 +113,8 @@
 
     <script>
         // --- PEGA TUS CREDENCIALES AQUÍ ---
-        const supabaseUrl = 'https://wwysklismkatoqnnbfvf.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3eXNrbGlzbWthdG9xbm5iZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODA3OTEsImV4cCI6MjA5MTI1Njc5MX0.9vivWgdHAq81SzjyHsDcrkIAtym81bk5UVxWPGtnDBM';
+        const supabaseUrl = 'PEGA_TU_PROJECT_URL_AQUI';
+        const supabaseKey = 'PEGA_TU_API_KEY_ANON_AQUI';
         
         const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -128,48 +127,28 @@
 
         let ventasActuales = [];
 
-        // FUNCIÓN NUEVA: Actualiza el desplegable de categorías según el negocio
         function actualizarCategorias() {
             const selectColor = document.getElementById('input-color');
-            selectColor.innerHTML = ''; // Vaciamos las opciones actuales
-
-            if (empresaActual === 'eventos') {
-                selectColor.innerHTML = `
-                    <option value="blue">General / Inscripciones</option>
-                `;
-            } else if (empresaActual === 'restaurante') {
-                selectColor.innerHTML = `
-                    <option value="orange">Comida</option>
-                    <option value="blue">Bebidas</option>
-                    <option value="green">Extras</option>
-                    <option value="purple">Para llevar</option>
-                `;
-            }
+            selectColor.innerHTML = '';
+            if (empresaActual === 'eventos') { selectColor.innerHTML = `<option value="blue">General / Inscripciones</option>`; } 
+            else if (empresaActual === 'restaurante') { selectColor.innerHTML = `<option value="orange">Comida</option><option value="blue">Bebidas</option><option value="green">Extras</option><option value="purple">Para llevar</option>`; }
         }
 
         function cambiarEmpresa() { 
             empresaActual = document.getElementById('select-empresa').value;
             localStorage.setItem('empresaGlobal140', empresaActual);
-            
             document.getElementById('lbl-catalogo').innerText = empresaActual === 'eventos' ? '140 Racing Events' : 'Restaurante';
             document.getElementById('borde-form').className = empresaActual === 'eventos' ? 'w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4 border-blue-600' : 'w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4 border-orange-500';
-            
-            actualizarCategorias(); // Llamamos a la función de rediseño
-            cargarDatosNube();
+            actualizarCategorias(); cargarDatosNube();
         }
 
         async function cargarDatosNube() {
-            const etiquetaNube = document.getElementById('status-nube');
-            etiquetaNube.innerText = "Sincronizando...";
-            
+            const etiquetaNube = document.getElementById('status-nube'); etiquetaNube.innerText = "Sincronizando...";
             try {
                 const { data: invData, error: invError } = await clienteSupabase.from('inventario').select('*').eq('negocio', empresaActual).order('id', { ascending: false });
-                if (invError) throw invError;
-                renderizarInventario(invData);
+                if (invError) throw invError; renderizarInventario(invData);
 
-                const mesSelec = document.getElementById('filtro-mes').value;
-                const anioSelec = document.getElementById('filtro-anio').value;
-                
+                const mesSelec = document.getElementById('filtro-mes').value; const anioSelec = document.getElementById('filtro-anio').value;
                 const { data: venData, error: venError } = await clienteSupabase.from('ventas').select('*').eq('negocio', empresaActual).order('id', { ascending: false });
                 if (venError) throw venError;
 
@@ -177,66 +156,40 @@
                     if (mesSelec === 'todos') return true;
                     const partesFecha = v.fecha.split('/'); 
                     if(partesFecha.length >= 3) {
-                        const mesVenta = partesFecha[1].padStart(2, '0');
-                        const anioVenta = partesFecha[2].substring(0, 4);
+                        const mesVenta = partesFecha[1].padStart(2, '0'); const anioVenta = partesFecha[2].substring(0, 4);
                         return (mesVenta === mesSelec && anioVenta === anioSelec);
                     }
                     return true;
                 });
 
                 renderizarVentas(ventasActuales);
-
-                etiquetaNube.innerText = "☁️ Sincronizado";
-                etiquetaNube.className = "bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm";
-            } catch (error) {
-                console.error(error);
-                etiquetaNube.innerText = "Error";
-                etiquetaNube.className = "bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm";
-            }
+                etiquetaNube.innerText = "☁️ Sincronizado"; etiquetaNube.className = "bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm";
+            } catch (error) { console.error(error); etiquetaNube.innerText = "Error"; etiquetaNube.className = "bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm"; }
         }
 
         function renderizarInventario(datos) {
-            const tbody = document.getElementById('tabla-inventario');
-            tbody.innerHTML = '';
+            const tbody = document.getElementById('tabla-inventario'); tbody.innerHTML = '';
             if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Catálogo vacío.</td></tr>`; return; }
             datos.forEach(p => {
-                // Traducción visual del color para la tabla
-                let nombreCategoria = "";
-                if(empresaActual === 'eventos') {
-                    nombreCategoria = "General";
-                } else {
-                    if(p.color === 'orange') nombreCategoria = "Comida";
-                    if(p.color === 'blue') nombreCategoria = "Bebidas";
-                    if(p.color === 'green') nombreCategoria = "Extras";
-                    if(p.color === 'purple') nombreCategoria = "Para llevar";
-                }
-
+                let nombreCategoria = empresaActual === 'eventos' ? "General" : (p.color === 'orange' ? "Comida" : p.color === 'blue' ? "Bebidas" : p.color === 'green' ? "Extras" : "Para llevar");
                 tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-4 font-bold text-gray-800 uppercase text-xs">${p.nombre}</td><td class="p-4"><span class="bg-${p.color}-100 text-${p.color}-800 px-2 py-1 rounded text-[10px] font-black uppercase">${nombreCategoria}</span></td><td class="p-4 font-black text-blue-700 text-lg">$${Number(p.precio).toFixed(2)}</td><td class="p-4 text-center"><button onclick="eliminarProducto(${p.id})" class="text-red-500 font-bold px-3 py-2 rounded-lg text-xs uppercase hover:bg-red-50">Borrar</button></td></tr>`;
             });
         }
 
         document.getElementById('form-producto').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-guardar-producto');
-            btn.innerText = "ENVIANDO..."; btn.disabled = true;
-
+            e.preventDefault(); const btn = document.getElementById('btn-guardar-producto'); btn.innerText = "ENVIANDO..."; btn.disabled = true;
             const n = { id: Date.now(), nombre: document.getElementById('input-nombre').value, precio: parseFloat(document.getElementById('input-precio').value), color: document.getElementById('input-color').value, negocio: empresaActual };
             const { error } = await clienteSupabase.from('inventario').insert([n]);
             if (!error) { this.reset(); cargarDatosNube(); }
-            btn.innerText = "+ GUARDAR"; btn.disabled = false;
+            btn.innerText = "+ GUARDAR EN LA NUBE"; btn.disabled = false;
         });
 
         async function eliminarProducto(id) {
-            if(confirm("¿Eliminar producto?")) {
-                const { error } = await clienteSupabase.from('inventario').delete().eq('id', id).eq('negocio', empresaActual);
-                if(!error) cargarDatosNube();
-            }
+            if(confirm("¿Eliminar producto?")) { const { error } = await clienteSupabase.from('inventario').delete().eq('id', id).eq('negocio', empresaActual); if(!error) cargarDatosNube(); }
         }
 
         function renderizarVentas(datos) {
-            const tbody = document.getElementById('tabla-ventas');
-            let tEfectivo = 0, tDigital = 0; tbody.innerHTML = '';
-
+            const tbody = document.getElementById('tabla-ventas'); let tEfectivo = 0, tDigital = 0; tbody.innerHTML = '';
             if(datos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-gray-400 font-bold text-lg">No hay ventas en el periodo seleccionado.</td></tr>`;
                 document.getElementById('txt-gran-total').innerText = "$ 0.00"; document.getElementById('txt-total-efectivo').innerText = "$ 0.00"; document.getElementById('txt-total-digital').innerText = "$ 0.00"; return;
@@ -252,57 +205,67 @@
                 tbody.innerHTML += `
                     <tr class="border-b hover:bg-gray-50 transition-colors">
                         <td class="p-4"><p class="font-mono text-gray-800 font-bold text-xs">${v.id}</p><p class="text-[10px] text-gray-500">${v.fecha}</p></td>
-                        <td class="p-4"><p class="font-bold text-gray-800 text-[11px] uppercase">${v.cliente_nombre}</p><p class="text-[10px] text-gray-500">RUC: ${v.cliente_id}</p></td>
+                        <td class="p-4"><p class="font-bold text-gray-800 text-[11px] uppercase">${v.cliente_nombre}</p><p class="text-[10px] text-gray-500">RUC: ${v.cliente_id}</p><p class="text-[9px] text-gray-400 truncate w-32" title="${v.cliente_email || 'N/A'}">${v.cliente_email || 'N/A'}</p></td>
                         <td class="p-4">${badgeMetodo}</td>
-                        <td class="p-4 text-[10px] text-gray-600 max-w-[200px] uppercase font-semibold leading-tight truncate" title="${items}">${items}</td>
+                        <td class="p-4 text-[10px] text-gray-600 max-w-[150px] uppercase font-semibold leading-tight truncate" title="${items}">${items}</td>
                         <td class="p-4 font-black text-slate-800 text-right text-lg">$${totalNum.toFixed(2)}</td>
                         <td class="p-4 text-center"><button onclick="anularVenta(${v.id})" class="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase underline">Anular</button></td>
                     </tr>
                 `;
             });
-            document.getElementById('txt-total-efectivo').innerText = `$ ${tEfectivo.toFixed(2)}`;
-            document.getElementById('txt-total-digital').innerText = `$ ${tDigital.toFixed(2)}`;
-            document.getElementById('txt-gran-total').innerText = `$ ${(tEfectivo + tDigital).toFixed(2)}`;
+            document.getElementById('txt-total-efectivo').innerText = `$ ${tEfectivo.toFixed(2)}`; document.getElementById('txt-total-digital').innerText = `$ ${tDigital.toFixed(2)}`; document.getElementById('txt-gran-total').innerText = `$ ${(tEfectivo + tDigital).toFixed(2)}`;
         }
 
         async function anularVenta(id) {
-            if(confirm("¿Estás seguro de anular esta factura? Esta acción borrará el registro contable de este cobro.")) {
-                const { error } = await clienteSupabase.from('ventas').delete().eq('id', id);
-                if(!error) cargarDatosNube(); else alert("Error al anular.");
-            }
+            if(confirm("¿Estás seguro de anular esta factura?")) { const { error } = await clienteSupabase.from('ventas').delete().eq('id', id); if(!error) cargarDatosNube(); else alert("Error al anular."); }
         }
 
-        function exportarExcel() {
-            if(ventasActuales.length === 0) return alert("No hay datos para exportar en este mes.");
+        function exportarExcelSRI() {
+            if(ventasActuales.length === 0) return alert("No hay datos para exportar.");
 
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "FECHA,COMPROBANTE CAJA,CLIENTE,ID/RUC,METODO PAGO,REFERENCIA,REGIMEN SRI,SUBTOTAL (Base Imponible),IVA,TOTAL FACTURA,DETALLE CONSUMO\r\n";
+            // Cabeceras exactas para compatibilidad contable SRI
+            csvContent += "FECHA,TIPO_ID,IDENTIFICACION,RAZON_SOCIAL,DIRECCION,EMAIL,BASE_0%,BASE_15%,MONTO_IVA,VALOR_TOTAL,FORMA_PAGO_SRI,REFERENCIA,DETALLE\r\n";
 
             ventasActuales.forEach(v => {
+                // 1. Detección del SRI para Tipo de ID
+                let tipoId = '07'; // Consumidor Final por defecto
+                let cedulaLimpiada = v.cliente_id.replace(/\D/g,'');
+                if(cedulaLimpiada.length === 10) tipoId = '05'; // Cédula
+                else if(cedulaLimpiada.length === 13) tipoId = '04'; // RUC
+
+                // 2. Detección del SRI para Forma de Pago
+                let formaPagoSRI = '01'; // Efectivo
+                if(v.metodo === 'tarjeta') formaPagoSRI = '19';
+                else if(v.metodo === 'transferencia') formaPagoSRI = '20';
+
+                // 3. Bases Imponibles
                 let ivaPorcentaje = (v.regimen && v.regimen.includes('15%')) ? 0.15 : 0.00;
                 let total = Number(v.total);
                 let subtotal = total / (1 + ivaPorcentaje);
                 let ivaMonto = total - subtotal;
-                let itemsStr = v.productos.map(p => p.nombre).join(' | ').replace(/,/g, '');
+                
+                let base0 = (ivaPorcentaje === 0) ? subtotal : 0;
+                let base15 = (ivaPorcentaje > 0) ? subtotal : 0;
 
-                let row = `"${v.fecha}","${v.id}","${v.cliente_nombre}","${v.cliente_id}","${v.metodo.toUpperCase()}","${v.referencia}","${v.regimen}",${subtotal.toFixed(2)},${ivaMonto.toFixed(2)},${total.toFixed(2)},"${itemsStr}"`;
+                let itemsStr = v.productos.map(p => p.nombre).join(' | ').replace(/,/g, '');
+                let nombreLimpio = v.cliente_nombre.replace(/,/g, '');
+                let dirLimpia = (v.cliente_direccion || 'N/A').replace(/,/g, '');
+
+                let row = `"${v.fecha}","${tipoId}","${cedulaLimpiada}","${nombreLimpio}","${dirLimpia}","${v.cliente_email || 'N/A'}",${base0.toFixed(2)},${base15.toFixed(2)},${ivaMonto.toFixed(2)},${total.toFixed(2)},"${formaPagoSRI}","${v.referencia}","${itemsStr}"`;
                 csvContent += row + "\r\n";
             });
 
             const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            
+            const link = document.createElement("a"); link.setAttribute("href", encodedUri);
             const mesSelec = document.getElementById('filtro-mes').options[document.getElementById('filtro-mes').selectedIndex].text;
             const anioSelec = document.getElementById('filtro-anio').value;
-            link.setAttribute("download", `Reporte_Contable_${empresaActual.toUpperCase()}_${mesSelec}_${anioSelec}.csv`);
+            link.setAttribute("download", `Anexo_SRI_${empresaActual.toUpperCase()}_${mesSelec}_${anioSelec}.csv`);
             
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        cambiarEmpresa(); // Inicializa el sistema con la empresa y categorías correctas
+        cambiarEmpresa(); 
     </script>
 </body>
 </html>
