@@ -103,12 +103,13 @@
                     <div class="flex justify-between items-center p-3 md:p-5 bg-green-50 rounded-xl md:rounded-2xl border-2 border-green-200"><span class="font-black text-green-800 uppercase text-[10px] md:text-xs tracking-widest">Cambio:</span><span id="cobro-vuelto" class="text-xl md:text-3xl font-black text-green-600">$ 0.00</span></div>
                 </div>
                 
-                <div id="area-digital" class="hidden space-y-3 md:space-y-4">
-                    <div class="flex flex-row items-center justify-between bg-blue-50 p-4 rounded-2xl border-2 border-blue-200">
-                        <div class="flex-1">
-                            <p class="text-[9px] md:text-[10px] font-black text-blue-500 uppercase mb-1 tracking-widest">Por cobrar en App</p>
-                            <p id="cobro-total-banco" class="text-2xl md:text-4xl font-black text-blue-900">$ 0.00</p>
-                        </div>
+                <<div id="area-digital" class="hidden space-y-3 md:space-y-4">
+                    <div class="bg-blue-50 text-blue-900 p-3 md:p-5 rounded-xl md:rounded-2xl text-center border-2 border-blue-200">
+                        <p class="text-[9px] md:text-[10px] font-black text-blue-500 uppercase mb-1 tracking-widest">Monto a Verificar en Banco / POS</p>
+                        <p id="cobro-total-banco" class="text-2xl md:text-4xl font-black text-blue-900">$ 0.00</p>
+                     </div>
+                    <div><label class="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase mb-1 tracking-wider">No. Comprobante / Lote (Obligatorio)</label><input type="text" id="input-referencia" class="w-full border-2 border-gray-200 rounded-xl p-3 md:p-4 focus:border-blue-500 outline-none font-black text-center text-lg md:text-xl transition-all uppercase tracking-widest" placeholder="EJ: 12345678"></div>
+                </div>
                         <div class="w-24 h-24 bg-white rounded-lg p-1 border border-blue-200 flex items-center justify-center">
                             <img id="img-qr" src="" alt="QR Pago" class="w-full h-full object-contain">
                         </div>
@@ -222,22 +223,15 @@
             document.querySelectorAll('.metodo-pago').forEach(b => b.className = "metodo-pago flex-1 py-2 md:py-3 rounded-lg md:rounded-xl bg-white text-gray-400 font-bold text-[10px] md:text-xs uppercase transition-all border border-gray-200");
             const act = document.getElementById(tipo === 'efectivo' ? 'btn-efectivo' : tipo === 'transferencia' ? 'btn-transf' : 'btn-tarjeta');
             act.className = "metodo-pago flex-1 py-2 md:py-3 rounded-lg md:rounded-xl bg-blue-50 shadow-sm text-blue-700 font-black text-[10px] md:text-xs uppercase transition-all border-2 border-blue-500 md:scale-105";
-            
+    
             document.getElementById('area-efectivo').style.display = (tipo === 'efectivo') ? 'block' : 'none';
             document.getElementById('area-digital').style.display = (tipo !== 'efectivo') ? 'block' : 'none';
-            
-            // Mostrar botón PayPhone solo si es tarjeta
             document.getElementById('area-tarjeta-link').style.display = (tipo === 'tarjeta') ? 'block' : 'none';
-            
-            // Generar un QR visual dinámico si es transferencia/Deuna
-            if(tipo === 'transferencia' || tipo === 'tarjeta') {
-                const textoQR = encodeURIComponent(`Pago a ${empresaActual} por $${totalOperacion.toFixed(2)}`);
-                document.getElementById('img-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${textoQR}&color=1e3a8a`;
-            }
-            
+    
             document.getElementById('input-referencia').value = '';
             if(tipo === 'efectivo') calcularVuelto(); else document.getElementById('btn-confirmar-pago').disabled = false;
         }
+     
 
         function abrirModalCobro() {
             if(comanda.length === 0) return;
