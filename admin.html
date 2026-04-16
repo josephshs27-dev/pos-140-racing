@@ -3,269 +3,722 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerencia - MultiTenant POS</title>
+    <title>Panel Gerencial - Restaurante</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
-    <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center gap-6">
-            <h1 class="text-xl font-bold tracking-wider">PANEL GERENCIAL</h1>
-            <div class="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
-                <span class="text-xs text-gray-400 mr-2 uppercase font-bold tracking-widest ml-2">Empresa Activa:</span>
-                <select id="select-empresa" onchange="cambiarEmpresa()" class="bg-slate-700 text-white border-none rounded p-2 text-sm font-black focus:ring-2 focus:ring-blue-500 cursor-pointer uppercase">
-                    <option value="eventos">🏁 140 Racing Events (15%)</option>
-                    <option value="restaurante">🍔 Restaurante (RIMPE 0%)</option>
-                </select>
-            </div>
-        </div>
-        <div class="flex gap-4 items-center">
-            <span id="status-nube" class="bg-yellow-500 text-xs px-3 py-1 rounded-full font-semibold text-slate-900">Sincronizando...</span>
-            <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded font-semibold transition shadow-lg border border-blue-500">Terminal de Venta ➔</a>
-        </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto p-6 space-y-6 mt-4">
+    <!-- LOGIN -->
+    <div id="pantalla-login" class="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 z-[200] flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+            <div class="w-24 h-24 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl">
+                <span class="text-5xl">📊</span>
+            </div>
+            <h2 class="text-3xl font-black text-slate-800 mb-1">GERENCIA</h2>
+            <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-8">Panel de Control</p>
+            
+            <div class="mb-6">
+                <input type="text" id="login-usuario" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-blue-500 outline-none font-bold text-sm transition-all" placeholder="Usuario" autofocus>
+            </div>
+            <div class="mb-6">
+                <input type="password" id="login-pin" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-blue-500 outline-none font-bold text-sm transition-all" placeholder="Contraseña">
+            </div>
+            
+            <button onclick="verificarLoginGerente()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase">
+                ✓ Ingresar
+            </button>
+            
+            <p id="msg-error" class="text-red-500 text-xs font-bold mt-4 hidden">⚠️ Credenciales inválidas</p>
+        </div>
+    </div>
+
+    <!-- PANEL PRINCIPAL -->
+    <div id="panel-principal" class="hidden">
         
-        <div class="flex flex-col lg:flex-row gap-6">
-            <section class="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4" id="borde-form">
-                <h2 class="text-lg font-bold mb-4 text-gray-800 border-b pb-2">Agregar al Catálogo</h2>
-                <form id="form-producto" class="space-y-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Servicio/Producto</label><input type="text" id="input-nombre" required class="w-full border-2 border-gray-200 rounded-xl p-3 uppercase font-bold focus:border-blue-500 focus:outline-none" placeholder="Ej. Inscripción Élite"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Precio Final ($)</label><input type="number" step="0.01" id="input-precio" required class="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-blue-700 focus:border-blue-500 focus:outline-none" placeholder="0.00"></div>
+        <!-- HEADER -->
+        <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 shadow-lg sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <span class="text-3xl">📊</span>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Categoría Visual</label>
-                        <select id="input-color" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none font-bold uppercase text-sm text-gray-700"></select>
+                        <h1 class="text-2xl font-black">PANEL GERENCIAL</h1>
+                        <p class="text-xs text-gray-400" id="usuario-gerente">Cargando...</p>
                     </div>
-                    <button type="submit" id="btn-guardar-producto" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl mt-4 transition active:scale-95 shadow-md">+ GUARDAR EN LA NUBE</button>
-                </form>
-            </section>
+                </div>
 
-            <section class="w-full lg:w-2/3 bg-white rounded-2xl shadow-sm p-6">
-                <div class="flex justify-between items-center border-b pb-2 mb-4">
-                    <h2 class="text-lg font-bold text-gray-800">Catálogo Global de <span id="lbl-catalogo" class="text-blue-600 uppercase">Eventos</span></h2>
-                </div>
-                <div class="overflow-x-auto h-[380px] border border-gray-200 rounded-xl">
-                    <table class="w-full text-left border-collapse">
-                        <thead><tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider sticky top-0 shadow-sm"><th class="p-4 border-b">Item</th><th class="p-4 border-b">Categoría</th><th class="p-4 border-b">Precio</th><th class="p-4 border-b text-center">Acción</th></tr></thead>
-                        <tbody id="tabla-inventario" class="text-sm"><tr><td colspan="4" class="p-4 text-center text-gray-400">Cargando inventario...</td></tr></tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-
-        <section class="w-full bg-white rounded-2xl shadow-sm p-6 mt-6 border-t-4 border-green-500">
-            <div class="flex justify-between items-start border-b pb-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-black text-gray-800 uppercase mb-2">Módulo Contable SRI</h2>
-                    <div class="flex gap-2 items-center">
-                        <select id="filtro-mes" onchange="cargarDatosNube()" class="border-2 border-gray-200 rounded-lg p-2 text-sm font-bold bg-gray-50 uppercase text-blue-700 outline-none">
-                            <option value="todos">Todos los meses</option>
-                            <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-                        </select>
-                        <select id="filtro-anio" onchange="cargarDatosNube()" class="border-2 border-gray-200 rounded-lg p-2 text-sm font-bold bg-gray-50 text-slate-700 outline-none">
-                            <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option>
-                        </select>
+                <div class="flex items-center gap-4">
+                    <div id="status-conexion" class="flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-lg">
+                        <span class="w-3 h-3 bg-green-400 rounded-full"></span>
+                        <span class="text-xs font-bold">En línea</span>
                     </div>
-                </div>
-                <div class="text-right flex gap-4">
-                    <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 shadow-inner min-w-[150px]">
-                        <p class="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Total Digitales</p>
-                        <p id="txt-total-digital" class="text-2xl font-black text-blue-700">$ 0.00</p>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-2xl border-2 border-green-200 shadow-inner min-w-[150px]">
-                        <p class="text-[10px] font-bold text-green-800 uppercase tracking-widest mb-1">Total Efectivo</p>
-                        <p id="txt-total-efectivo" class="text-2xl font-black text-green-700">$ 0.00</p>
-                    </div>
-                    <div class="bg-slate-900 p-4 rounded-2xl border-2 border-slate-700 shadow-inner min-w-[200px]">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ingresos Globales</p>
-                        <p id="txt-gran-total" class="text-4xl font-black text-white">$ 0.00</p>
-                    </div>
+                    <button onclick="cerrarSesionGerente()" class="text-red-400 hover:text-red-300 text-xs font-bold uppercase px-4 py-2 hover:bg-red-900/20 rounded transition">
+                        🚪 Salir
+                    </button>
                 </div>
             </div>
+        </header>
 
-            <div class="overflow-x-auto border border-gray-200 rounded-xl h-[500px]">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider sticky top-0 shadow-sm">
-                            <th class="p-4 font-semibold">Caja / Fecha</th>
-                            <th class="p-4 font-semibold">Datos Cliente (SRI)</th>
-                            <th class="p-4 font-semibold">Método / Ref.</th>
-                            <th class="p-4 font-semibold">Consumo</th>
-                            <th class="p-4 font-semibold text-right">Total</th>
-                            <th class="p-4 font-semibold text-center">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-ventas" class="text-sm">
-                        <tr><td colspan="6" class="p-8 text-center text-gray-400">Cargando historial...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-6 flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <button onclick="cargarDatosNube()" class="text-blue-600 hover:text-blue-800 font-bold text-sm uppercase tracking-widest flex items-center gap-2">🔄 Refrescar Pantalla</button>
-                <button onclick="exportarExcelSRI()" class="bg-green-600 hover:bg-green-700 text-white font-black px-8 py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 text-lg uppercase tracking-wider border-2 border-green-500">
-                    <span>📑</span> Generar Reporte ATS (SRI)
+        <!-- NAVEGACIÓN TABS -->
+        <nav class="bg-white border-b border-gray-200 sticky top-16 z-30 shadow-sm">
+            <div class="max-w-7xl mx-auto flex px-4 gap-6">
+                <button onclick="cambiarTab('dashboard')" id="tab-dashboard" class="nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-blue-600 text-blue-600 transition">
+                    📈 Dashboard
+                </button>
+                <button onclick="cambiarTab('ventas')" id="tab-ventas" class="nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-transparent text-gray-600 hover:text-gray-800 transition">
+                    🛒 Ventas
+                </button>
+                <button onclick="cambiarTab('inventario')" id="tab-inventario" class="nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-transparent text-gray-600 hover:text-gray-800 transition">
+                    📦 Inventario
+                </button>
+                <button onclick="cambiarTab('usuarios')" id="tab-usuarios" class="nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-transparent text-gray-600 hover:text-gray-800 transition">
+                    👥 Usuarios
+                </button>
+                <button onclick="cambiarTab('reportes')" id="tab-reportes" class="nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-transparent text-gray-600 hover:text-gray-800 transition">
+                    📄 Reportes
                 </button>
             </div>
-        </section>
-    </main>
+        </nav>
 
+        <!-- CONTENIDO -->
+        <main class="max-w-7xl mx-auto p-6">
+
+            <!-- DASHBOARD -->
+            <section id="contenido-dashboard" class="space-y-6">
+                
+                <!-- KPIs -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-blue-500">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Ventas Hoy</p>
+                        <p class="text-3xl font-black text-blue-600 mt-2" id="kpi-ventas-hoy">$0.00</p>
+                        <p class="text-[10px] text-gray-400 mt-2" id="kpi-ventas-hoy-cant">0 ventas</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-green-500">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Ingresos Mes</p>
+                        <p class="text-3xl font-black text-green-600 mt-2" id="kpi-ingresos-mes">$0.00</p>
+                        <p class="text-[10px] text-gray-400 mt-2" id="kpi-dias-mes">30 días</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-purple-500">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Promedio Ticket</p>
+                        <p class="text-3xl font-black text-purple-600 mt-2" id="kpi-promedio-ticket">$0.00</p>
+                        <p class="text-[10px] text-gray-400 mt-2" id="kpi-promedio-cant">0 productos/venta</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-orange-500">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Producto TOP</p>
+                        <p class="text-2xl font-black text-orange-600 mt-2 truncate" id="kpi-top-producto">--</p>
+                        <p class="text-[10px] text-gray-400 mt-2" id="kpi-top-cantidad">0 vendidos</p>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="bg-white rounded-2xl shadow-sm p-6 flex flex-wrap gap-4 items-center">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Desde</label>
+                        <input type="date" id="filtro-desde" class="border-2 border-gray-200 rounded-lg p-2 text-sm focus:border-blue-500 outline-none" onchange="cargarDashboard()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Hasta</label>
+                        <input type="date" id="filtro-hasta" class="border-2 border-gray-200 rounded-lg p-2 text-sm focus:border-blue-500 outline-none" onchange="cargarDashboard()">
+                    </div>
+                    <div class="ml-auto flex gap-3">
+                        <button onclick="cargarDashboard()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition">
+                            🔄 Refrescar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Gráficas -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <h3 class="font-black text-lg text-gray-800 mb-4">Ventas por Día</h3>
+                        <canvas id="grafica-ventas-dia"></canvas>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <h3 class="font-black text-lg text-gray-800 mb-4">Productos Más Vendidos</h3>
+                        <canvas id="grafica-productos-top"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VENTAS -->
+            <section id="contenido-ventas" class="hidden space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 class="text-2xl font-black text-gray-800 mb-4">Historial de Ventas</h2>
+                    
+                    <div class="flex gap-4 mb-6">
+                        <input type="date" id="venta-fecha-desde" class="border-2 border-gray-200 rounded-lg p-2 text-sm focus:border-blue-500 outline-none" onchange="cargarVentas()">
+                        <input type="date" id="venta-fecha-hasta" class="border-2 border-gray-200 rounded-lg p-2 text-sm focus:border-blue-500 outline-none" onchange="cargarVentas()">
+                        <input type="text" id="venta-buscar" placeholder="Buscar cliente..." class="flex-1 border-2 border-gray-200 rounded-lg p-2 text-sm focus:border-blue-500 outline-none" onkeyup="cargarVentas()">
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="p-3 text-left font-black text-gray-700">Comprobante</th>
+                                    <th class="p-3 text-left font-black text-gray-700">Fecha/Hora</th>
+                                    <th class="p-3 text-left font-black text-gray-700">Cliente</th>
+                                    <th class="p-3 text-left font-black text-gray-700">Método</th>
+                                    <th class="p-3 text-right font-black text-gray-700">Total</th>
+                                    <th class="p-3 text-center font-black text-gray-700">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-ventas" class="divide-y divide-gray-200">
+                                <tr><td colspan="6" class="p-6 text-center text-gray-400">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INVENTARIO -->
+            <section id="contenido-inventario" class="hidden space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-black text-gray-800">Gestión de Inventario</h2>
+                        <button onclick="abrirModalProducto()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">
+                            + Nuevo Producto
+                        </button>
+                    </div>
+
+                    <div class="flex gap-4 mb-6">
+                        <input type="text" id="inv-buscar" placeholder="Buscar producto..." class="flex-1 border-2 border-gray-200 rounded-lg p-2 focus:border-blue-500 outline-none" onkeyup="filtrarInventario()">
+                        <select id="inv-categoria" class="border-2 border-gray-200 rounded-lg p-2 focus:border-blue-500 outline-none" onchange="filtrarInventario()">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="p-3 text-left font-black">Producto</th>
+                                    <th class="p-3 text-left font-black">Categoría</th>
+                                    <th class="p-3 text-right font-black">Costo</th>
+                                    <th class="p-3 text-right font-black">Venta</th>
+                                    <th class="p-3 text-center font-black">Stock</th>
+                                    <th class="p-3 text-center font-black">Margen %</th>
+                                    <th class="p-3 text-center font-black">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-inventario" class="divide-y divide-gray-200">
+                                <tr><td colspan="7" class="p-6 text-center text-gray-400">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- USUARIOS -->
+            <section id="contenido-usuarios" class="hidden space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-black text-gray-800">Gestión de Usuarios</h2>
+                        <button onclick="abrirModalUsuario()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">
+                            + Nuevo Usuario
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="p-3 text-left font-black">Usuario</th>
+                                    <th class="p-3 text-left font-black">Email</th>
+                                    <th class="p-3 text-left font-black">Rol</th>
+                                    <th class="p-3 text-center font-black">Estado</th>
+                                    <th class="p-3 text-left font-black">Último Acceso</th>
+                                    <th class="p-3 text-center font-black">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-usuarios" class="divide-y divide-gray-200">
+                                <tr><td colspan="6" class="p-6 text-center text-gray-400">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- REPORTES -->
+            <section id="contenido-reportes" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="generarReporte('diario')" class="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition border-t-4 border-blue-500">
+                        <p class="text-2xl mb-2">📅</p>
+                        <p class="font-black text-gray-800">Reporte Diario</p>
+                        <p class="text-xs text-gray-500 mt-1">Ventas, ingresos y detalles</p>
+                    </button>
+
+                    <button onclick="generarReporte('semanal')" class="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition border-t-4 border-green-500">
+                        <p class="text-2xl mb-2">📊</p>
+                        <p class="font-black text-gray-800">Reporte Semanal</p>
+                        <p class="text-xs text-gray-500 mt-1">Análisis de 7 días</p>
+                    </button>
+
+                    <button onclick="generarReporte('mensual')" class="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition border-t-4 border-purple-500">
+                        <p class="text-2xl mb-2">📈</p>
+                        <p class="font-black text-gray-800">Reporte Mensual</p>
+                        <p class="text-xs text-gray-500 mt-1">Estadísticas completas</p>
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <h3 class="font-black text-lg text-gray-800 mb-4">Más Reportes</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="exportarExcel()" class="bg-green-50 border-2 border-green-200 hover:bg-green-100 p-4 rounded-xl transition font-bold text-green-700">
+                            📊 Descargar Excel
+                        </button>
+                        <button onclick="exportarPDF()" class="bg-red-50 border-2 border-red-200 hover:bg-red-100 p-4 rounded-xl transition font-bold text-red-700">
+                            📄 Descargar PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODALES -->
+    
+    <!-- Modal Producto -->
+    <div id="modal-producto" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh]">
+            <div class="p-6">
+                <h3 class="text-2xl font-black text-gray-800 mb-4">Nuevo Producto</h3>
+                
+                <form id="form-producto" class="space-y-4" onsubmit="guardarProducto(event)">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Nombre</label>
+                        <input type="text" id="prod-nombre" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none" placeholder="Ej: Arroz con Pollo">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Categoría</label>
+                        <select id="prod-categoria" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none"></select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">Costo ($)</label>
+                            <input type="number" id="prod-costo" step="0.01" class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">Precio Venta ($)</label>
+                            <input type="number" id="prod-precio" step="0.01" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">Stock Inicial</label>
+                            <input type="number" id="prod-stock" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">Stock Mínimo</label>
+                            <input type="number" id="prod-stock-min" class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none" value="5">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Descripción (Opcional)</label>
+                        <textarea id="prod-descripcion" class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none resize-none h-20"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 mt-6 pt-6 border-t">
+                        <button type="button" onclick="cerrarModalProducto()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-200 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                            ✓ Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Usuario -->
+    <div id="modal-usuario" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-2xl font-black text-gray-800 mb-4">Nuevo Usuario</h3>
+                
+                <form id="form-usuario" class="space-y-4" onsubmit="guardarUsuario(event)">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Nombre</label>
+                        <input type="text" id="user-nombre" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none" placeholder="Ej: Juan Pérez">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Email</label>
+                        <input type="email" id="user-email" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Rol</label>
+                        <select id="user-rol" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none">
+                            <option value="cajero">Cajero</option>
+                            <option value="cocinero">Cocinero</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">PIN de Acceso (4-6 dígitos)</label>
+                        <input type="text" id="user-pin" required class="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 outline-none" placeholder="1234" maxlength="6">
+                    </div>
+
+                    <div class="flex gap-3 mt-6 pt-6 border-t">
+                        <button type="button" onclick="cerrarModalUsuario()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-200 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                            ✓ Crear
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
     <script>
-        // --- PEGA TUS CREDENCIALES AQUÍ ---
-        const supabaseUrl = 'https://wwysklismkatoqnnbfvf.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3eXNrbGlzbWthdG9xbm5iZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODA3OTEsImV4cCI6MjA5MTI1Njc5MX0.9vivWgdHAq81SzjyHsDcrkIAtym81bk5UVxWPGtnDBM';
-        
-        const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Variables globales
+        let clienteSupabase = null;
+        let usuarioActual = null;
+        let empresaActual = 'restaurante';
 
-        let empresaActual = localStorage.getItem('empresaGlobal140') || 'eventos';
-        document.getElementById('select-empresa').value = empresaActual;
-        
-        const fechaHoy = new Date();
-        const mesStr = String(fechaHoy.getMonth() + 1).padStart(2, '0');
-        document.getElementById('filtro-mes').value = mesStr;
-
-        let ventasActuales = [];
-
-        function actualizarCategorias() {
-            const selectColor = document.getElementById('input-color');
-            selectColor.innerHTML = '';
-            if (empresaActual === 'eventos') { selectColor.innerHTML = `<option value="blue">General / Inscripciones</option>`; } 
-            else if (empresaActual === 'restaurante') { selectColor.innerHTML = `<option value="orange">Comida</option><option value="blue">Bebidas</option><option value="green">Extras</option><option value="purple">Para llevar</option>`; }
-        }
-
-        function cambiarEmpresa() { 
-            empresaActual = document.getElementById('select-empresa').value;
-            localStorage.setItem('empresaGlobal140', empresaActual);
-            document.getElementById('lbl-catalogo').innerText = empresaActual === 'eventos' ? '140 Racing Events' : 'Restaurante';
-            document.getElementById('borde-form').className = empresaActual === 'eventos' ? 'w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4 border-blue-600' : 'w-full lg:w-1/3 bg-white rounded-2xl shadow-sm p-6 h-fit border-t-4 border-orange-500';
-            actualizarCategorias(); cargarDatosNube();
-        }
-
-        async function cargarDatosNube() {
-            const etiquetaNube = document.getElementById('status-nube'); etiquetaNube.innerText = "Sincronizando...";
-            try {
-                const { data: invData, error: invError } = await clienteSupabase.from('inventario').select('*').eq('negocio', empresaActual).order('id', { ascending: false });
-                if (invError) throw invError; renderizarInventario(invData);
-
-                const mesSelec = document.getElementById('filtro-mes').value; const anioSelec = document.getElementById('filtro-anio').value;
-                const { data: venData, error: venError } = await clienteSupabase.from('ventas').select('*').eq('negocio', empresaActual).order('id', { ascending: false });
-                if (venError) throw venError;
-
-                ventasActuales = venData.filter(v => {
-                    if (mesSelec === 'todos') return true;
-                    const partesFecha = v.fecha.split('/'); 
-                    if(partesFecha.length >= 3) {
-                        const mesVenta = partesFecha[1].padStart(2, '0'); const anioVenta = partesFecha[2].substring(0, 4);
-                        return (mesVenta === mesSelec && anioVenta === anioSelec);
-                    }
-                    return true;
-                });
-
-                renderizarVentas(ventasActuales);
-                etiquetaNube.innerText = "☁️ Sincronizado"; etiquetaNube.className = "bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm";
-            } catch (error) { console.error(error); etiquetaNube.innerText = "Error"; etiquetaNube.className = "bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm"; }
-        }
-
-        function renderizarInventario(datos) {
-            const tbody = document.getElementById('tabla-inventario'); tbody.innerHTML = '';
-            if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Catálogo vacío.</td></tr>`; return; }
-            datos.forEach(p => {
-                let nombreCategoria = empresaActual === 'eventos' ? "General" : (p.color === 'orange' ? "Comida" : p.color === 'blue' ? "Bebidas" : p.color === 'green' ? "Extras" : "Para llevar");
-                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-4 font-bold text-gray-800 uppercase text-xs">${p.nombre}</td><td class="p-4"><span class="bg-${p.color}-100 text-${p.color}-800 px-2 py-1 rounded text-[10px] font-black uppercase">${nombreCategoria}</span></td><td class="p-4 font-black text-blue-700 text-lg">$${Number(p.precio).toFixed(2)}</td><td class="p-4 text-center"><button onclick="eliminarProducto(${p.id})" class="text-red-500 font-bold px-3 py-2 rounded-lg text-xs uppercase hover:bg-red-50">Borrar</button></td></tr>`;
-            });
-        }
-
-        document.getElementById('form-producto').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('btn-guardar-producto'); btn.innerText = "ENVIANDO..."; btn.disabled = true;
-            const n = { id: Date.now(), nombre: document.getElementById('input-nombre').value, precio: parseFloat(document.getElementById('input-precio').value), color: document.getElementById('input-color').value, negocio: empresaActual };
-            const { error } = await clienteSupabase.from('inventario').insert([n]);
-            if (!error) { this.reset(); cargarDatosNube(); }
-            btn.innerText = "+ GUARDAR EN LA NUBE"; btn.disabled = false;
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', () => {
+            inicializarSupabase();
+            setearFechasHoy();
         });
 
-        async function eliminarProducto(id) {
-            if(confirm("¿Eliminar producto?")) { const { error } = await clienteSupabase.from('inventario').delete().eq('id', id).eq('negocio', empresaActual); if(!error) cargarDatosNube(); }
+        function inicializarSupabase() {
+            try {
+                clienteSupabase = window.supabase.createClient(
+                    SUPABASE_CONFIG.supabaseUrl,
+                    SUPABASE_CONFIG.supabaseKey
+                );
+            } catch (error) {
+                console.error('Error Supabase:', error);
+                alert('Error inicializando sistema');
+            }
         }
 
-        function renderizarVentas(datos) {
-            const tbody = document.getElementById('tabla-ventas'); let tEfectivo = 0, tDigital = 0; tbody.innerHTML = '';
-            if(datos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-gray-400 font-bold text-lg">No hay ventas en el periodo seleccionado.</td></tr>`;
-                document.getElementById('txt-gran-total').innerText = "$ 0.00"; document.getElementById('txt-total-efectivo').innerText = "$ 0.00"; document.getElementById('txt-total-digital').innerText = "$ 0.00"; return;
+        async function verificarLoginGerente() {
+            const usuario = document.getElementById('login-usuario').value;
+            const pin = document.getElementById('login-pin').value;
+
+            if (!usuario || !pin) {
+                mostrarError('Completa usuario y contraseña');
+                return;
             }
 
-            datos.forEach(v => {
-                const totalNum = Number(v.total);
-                if(v.metodo === 'efectivo') tEfectivo += totalNum; else tDigital += totalNum;
+            try {
+                const { data, error } = await clienteSupabase
+                    .from('usuarios')
+                    .select('*')
+                    .eq('nombre', usuario)
+                    .eq('empresa_id', empresaActual)
+                    .in('rol', ['admin', 'gerente'])
+                    .single();
 
-                let items = v.productos.map(p => p.nombre).join(', ');
-                let badgeMetodo = v.metodo === 'efectivo' ? `<span class="bg-green-100 text-green-800 font-black px-2 py-1 rounded text-[10px] uppercase">💵 Efectivo</span>` : `<span class="bg-blue-100 text-blue-800 font-black px-2 py-1 rounded text-[10px] uppercase block mb-1">📱 ${v.metodo}</span><span class="text-[9px] font-mono text-gray-500">Ref: ${v.referencia}</span>`;
+                if (error || data.pin_acceso !== pin) {
+                    document.getElementById('msg-error').classList.remove('hidden');
+                    document.getElementById('login-pin').value = '';
+                    return;
+                }
 
-                tbody.innerHTML += `
-                    <tr class="border-b hover:bg-gray-50 transition-colors">
-                        <td class="p-4"><p class="font-mono text-gray-800 font-bold text-xs">${v.id}</p><p class="text-[10px] text-gray-500">${v.fecha}</p></td>
-                        <td class="p-4"><p class="font-bold text-gray-800 text-[11px] uppercase">${v.cliente_nombre}</p><p class="text-[10px] text-gray-500">RUC: ${v.cliente_id}</p><p class="text-[9px] text-gray-400 truncate w-32" title="${v.cliente_email || 'N/A'}">${v.cliente_email || 'N/A'}</p></td>
-                        <td class="p-4">${badgeMetodo}</td>
-                        <td class="p-4 text-[10px] text-gray-600 max-w-[150px] uppercase font-semibold leading-tight truncate" title="${items}">${items}</td>
-                        <td class="p-4 font-black text-slate-800 text-right text-lg">$${totalNum.toFixed(2)}</td>
-                        <td class="p-4 text-center"><button onclick="anularVenta(${v.id})" class="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase underline">Anular</button></td>
-                    </tr>
-                `;
-            });
-            document.getElementById('txt-total-efectivo').innerText = `$ ${tEfectivo.toFixed(2)}`; document.getElementById('txt-total-digital').innerText = `$ ${tDigital.toFixed(2)}`; document.getElementById('txt-gran-total').innerText = `$ ${(tEfectivo + tDigital).toFixed(2)}`;
+                usuarioActual = data;
+                mostrarPanel();
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('msg-error').classList.remove('hidden');
+            }
         }
 
-        async function anularVenta(id) {
-            if(confirm("¿Estás seguro de anular esta factura?")) { const { error } = await clienteSupabase.from('ventas').delete().eq('id', id); if(!error) cargarDatosNube(); else alert("Error al anular."); }
-        }
-
-        function exportarExcelSRI() {
-            if(ventasActuales.length === 0) return alert("No hay datos para exportar.");
-
-            let csvContent = "data:text/csv;charset=utf-8,";
-            // Cabeceras exactas para compatibilidad contable SRI
-            csvContent += "FECHA,TIPO_ID,IDENTIFICACION,RAZON_SOCIAL,DIRECCION,EMAIL,BASE_0%,BASE_15%,MONTO_IVA,VALOR_TOTAL,FORMA_PAGO_SRI,REFERENCIA,DETALLE\r\n";
-
-            ventasActuales.forEach(v => {
-                // 1. Detección del SRI para Tipo de ID
-                let tipoId = '07'; // Consumidor Final por defecto
-                let cedulaLimpiada = v.cliente_id.replace(/\D/g,'');
-                if(cedulaLimpiada.length === 10) tipoId = '05'; // Cédula
-                else if(cedulaLimpiada.length === 13) tipoId = '04'; // RUC
-
-                // 2. Detección del SRI para Forma de Pago
-                let formaPagoSRI = '01'; // Efectivo
-                if(v.metodo === 'tarjeta') formaPagoSRI = '19';
-                else if(v.metodo === 'transferencia') formaPagoSRI = '20';
-
-                // 3. Bases Imponibles
-                let ivaPorcentaje = (v.regimen && v.regimen.includes('15%')) ? 0.15 : 0.00;
-                let total = Number(v.total);
-                let subtotal = total / (1 + ivaPorcentaje);
-                let ivaMonto = total - subtotal;
-                
-                let base0 = (ivaPorcentaje === 0) ? subtotal : 0;
-                let base15 = (ivaPorcentaje > 0) ? subtotal : 0;
-
-                let itemsStr = v.productos.map(p => p.nombre).join(' | ').replace(/,/g, '');
-                let nombreLimpio = v.cliente_nombre.replace(/,/g, '');
-                let dirLimpia = (v.cliente_direccion || 'N/A').replace(/,/g, '');
-
-                let row = `"${v.fecha}","${tipoId}","${cedulaLimpiada}","${nombreLimpio}","${dirLimpia}","${v.cliente_email || 'N/A'}",${base0.toFixed(2)},${base15.toFixed(2)},${ivaMonto.toFixed(2)},${total.toFixed(2)},"${formaPagoSRI}","${v.referencia}","${itemsStr}"`;
-                csvContent += row + "\r\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a"); link.setAttribute("href", encodedUri);
-            const mesSelec = document.getElementById('filtro-mes').options[document.getElementById('filtro-mes').selectedIndex].text;
-            const anioSelec = document.getElementById('filtro-anio').value;
-            link.setAttribute("download", `Anexo_SRI_${empresaActual.toUpperCase()}_${mesSelec}_${anioSelec}.csv`);
+        function mostrarPanel() {
+            document.getElementById('pantalla-login').classList.add('hidden');
+            document.getElementById('panel-principal').classList.remove('hidden');
+            document.getElementById('usuario-gerente').textContent = `${usuarioActual.nombre} (${usuarioActual.rol})`;
             
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            cargarDashboard();
         }
 
-        cambiarEmpresa(); 
+        function cerrarSesionGerente() {
+            usuarioActual = null;
+            document.getElementById('panel-principal').classList.add('hidden');
+            document.getElementById('pantalla-login').classList.remove('hidden');
+            document.getElementById('login-usuario').value = '';
+            document.getElementById('login-pin').value = '';
+        }
+
+        function cambiarTab(tab) {
+            // Ocultar todos
+            document.querySelectorAll('[id^="contenido-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.className = 'nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-transparent text-gray-600 hover:text-gray-800 transition';
+            });
+
+            // Mostrar seleccionado
+            document.getElementById(`contenido-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = 'nav-tab py-4 px-4 font-bold text-sm uppercase tracking-widest border-b-4 border-blue-600 text-blue-600 transition';
+
+            // Cargar datos
+            if (tab === 'ventas') cargarVentas();
+            if (tab === 'inventario') cargarInventario();
+            if (tab === 'usuarios') cargarUsuarios();
+        }
+
+        async function cargarDashboard() {
+            try {
+                const desde = new Date(document.getElementById('filtro-desde').value || new Date());
+                const hasta = new Date(document.getElementById('filtro-hasta').value || new Date());
+                
+                // Obtener ventas del período
+                const { data: ventas } = await clienteSupabase
+                    .from('ventas')
+                    .select('*')
+                    .eq('empresa_id', empresaActual)
+                    .eq('estado', 'completada')
+                    .gte('fecha_hora', desde.toISOString())
+                    .lte('fecha_hora', hasta.toISOString());
+
+                // Calcular KPIs
+                const totalHoy = ventas
+                    .filter(v => new Date(v.fecha_hora).toDateString() === new Date().toDateString())
+                    .reduce((sum, v) => sum + v.total, 0);
+
+                const totalMes = ventas.reduce((sum, v) => sum + v.total, 0);
+                const promedioTicket = ventas.length > 0 ? totalMes / ventas.length : 0;
+
+                document.getElementById('kpi-ventas-hoy').textContent = `$${totalHoy.toFixed(2)}`;
+                document.getElementById('kpi-ventas-hoy-cant').textContent = `${ventas.filter(v => new Date(v.fecha_hora).toDateString() === new Date().toDateString()).length} ventas`;
+                document.getElementById('kpi-ingresos-mes').textContent = `$${totalMes.toFixed(2)}`;
+                document.getElementById('kpi-promedio-ticket').textContent = `$${promedioTicket.toFixed(2)}`;
+
+                // Obtener producto más vendido
+                const { data: detalles } = await clienteSupabase
+                    .from('detalles_venta')
+                    .select('producto_id, cantidad, productos(nombre)')
+                    .in('venta_id', ventas.map(v => v.id));
+
+                const topProducto = detalles.reduce((acc, det) => {
+                    const key = det.producto_id;
+                    acc[key] = (acc[key] || 0) + det.cantidad;
+                    return acc;
+                }, {});
+
+                const topId = Object.keys(topProducto).reduce((a, b) => topProducto[a] > topProducto[b] ? a : b, null);
+                if (topId) {
+                    const prodTop = detalles.find(d => d.producto_id == topId);
+                    document.getElementById('kpi-top-producto').textContent = prodTop?.productos?.nombre || '--';
+                    document.getElementById('kpi-top-cantidad').textContent = `${topProducto[topId]} vendidos`;
+                }
+
+            } catch (error) {
+                console.error('Error dashboard:', error);
+            }
+        }
+
+        async function cargarVentas() {
+            try {
+                const { data: ventas } = await clienteSupabase
+                    .from('ventas')
+                    .select('*')
+                    .eq('empresa_id', empresaActual)
+                    .order('fecha_hora', { ascending: false });
+
+                const tbody = document.getElementById('tabla-ventas');
+                tbody.innerHTML = ventas.map(v => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-bold text-blue-600">${v.numero_comprobante}</td>
+                        <td class="p-3 text-xs">${new Date(v.fecha_hora).toLocaleString('es-EC')}</td>
+                        <td class="p-3">${v.cliente_nombre}</td>
+                        <td class="p-3"><span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded">${v.metodo_pago}</span></td>
+                        <td class="p-3 text-right font-bold">$${v.total.toFixed(2)}</td>
+                        <td class="p-3 text-center"><button onclick="verDetalleVenta(${v.id})" class="text-blue-600 hover:underline text-xs font-bold">Ver</button></td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error cargas ventas:', error);
+            }
+        }
+
+        async function cargarInventario() {
+            try {
+                const { data: productos } = await clienteSupabase
+                    .from('productos')
+                    .select('*, categorias(nombre)')
+                    .eq('empresa_id', empresaActual)
+                    .order('nombre');
+
+                const tbody = document.getElementById('tabla-inventario');
+                tbody.innerHTML = productos.map(p => {
+                    const margen = p.precio_costo > 0 ? ((p.precio_venta - p.precio_costo) / p.precio_costo * 100) : 0;
+                    return `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-bold">${p.nombre}</td>
+                            <td class="p-3 text-sm">${p.categorias?.nombre}</td>
+                            <td class="p-3 text-right">$${p.precio_costo.toFixed(2)}</td>
+                            <td class="p-3 text-right font-bold">$${p.precio_venta.toFixed(2)}</td>
+                            <td class="p-3 text-center">
+                                <span class="font-bold ${p.stock_actual < p.stock_minimo ? 'text-red-600' : 'text-green-600'}">
+                                    ${p.stock_actual}
+                                </span>
+                            </td>
+                            <td class="p-3 text-center text-sm">${margen.toFixed(1)}%</td>
+                            <td class="p-3 text-center"><button onclick="editarProducto(${p.id})" class="text-blue-600 hover:underline text-xs font-bold">Editar</button></td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error inventario:', error);
+            }
+        }
+
+        async function cargarUsuarios() {
+            try {
+                const { data: usuarios } = await clienteSupabase
+                    .from('usuarios')
+                    .select('*')
+                    .eq('empresa_id', empresaActual)
+                    .order('nombre');
+
+                const tbody = document.getElementById('tabla-usuarios');
+                tbody.innerHTML = usuarios.map(u => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-bold">${u.nombre}</td>
+                        <td class="p-3 text-sm">${u.email || '-'}</td>
+                        <td class="p-3"><span class="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">${u.rol}</span></td>
+                        <td class="p-3 text-center">
+                            <span class="text-xs font-bold ${u.estado ? 'text-green-600' : 'text-red-600'}">
+                                ${u.estado ? '✓ Activo' : '✗ Inactivo'}
+                            </span>
+                        </td>
+                        <td class="p-3 text-sm">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-EC') : '-'}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="desactivarUsuario(${u.id})" class="text-red-600 hover:underline text-xs font-bold">
+                                ${u.estado ? 'Desactivar' : 'Activar'}
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error usuarios:', error);
+            }
+        }
+
+        // Modales
+        async function abrirModalProducto() {
+            // Cargar categorías
+            const { data: cats } = await clienteSupabase
+                .from('categorias')
+                .select('*')
+                .eq('empresa_id', empresaActual);
+
+            const select = document.getElementById('prod-categoria');
+            select.innerHTML = cats.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+
+            document.getElementById('modal-producto').classList.remove('hidden');
+        }
+
+        function cerrarModalProducto() {
+            document.getElementById('modal-producto').classList.add('hidden');
+            document.getElementById('form-producto').reset();
+        }
+
+        async function guardarProducto(e) {
+            e.preventDefault();
+
+            try {
+                const { error } = await clienteSupabase
+                    .from('productos')
+                    .insert([{
+                        empresa_id: empresaActual,
+                        categoria_id: parseInt(document.getElementById('prod-categoria').value),
+                        nombre: document.getElementById('prod-nombre').value,
+                        descripcion: document.getElementById('prod-descripcion').value,
+                        precio_costo: parseFloat(document.getElementById('prod-costo').value) || 0,
+                        precio_venta: parseFloat(document.getElementById('prod-precio').value),
+                        stock_actual: parseInt(document.getElementById('prod-stock').value),
+                        stock_minimo: parseInt(document.getElementById('prod-stock-min').value),
+                        estado: true
+                    }]);
+
+                if (error) throw error;
+
+                cerrarModalProducto();
+                cargarInventario();
+                alert('✓ Producto creado exitosamente');
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function abrirModalUsuario() {
+            document.getElementById('modal-usuario').classList.remove('hidden');
+        }
+
+        function cerrarModalUsuario() {
+            document.getElementById('modal-usuario').classList.add('hidden');
+            document.getElementById('form-usuario').reset();
+        }
+
+        async function guardarUsuario(e) {
+            e.preventDefault();
+
+            try {
+                const { error } = await clienteSupabase
+                    .from('usuarios')
+                    .insert([{
+                        empresa_id: empresaActual,
+                        nombre: document.getElementById('user-nombre').value,
+                        email: document.getElementById('user-email').value,
+                        rol: document.getElementById('user-rol').value,
+                        pin_acceso: document.getElementById('user-pin').value,
+                        estado: true
+                    }]);
+
+                if (error) throw error;
+
+                cerrarModalUsuario();
+                cargarUsuarios();
+                alert('✓ Usuario creado exitosamente');
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function setearFechasHoy() {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro-desde').value = hoy;
+            document.getElementById('filtro-hasta').value = hoy;
+            document.getElementById('venta-fecha-desde').value = hoy;
+            document.getElementById('venta-fecha-hasta').value = hoy;
+        }
+
+        async function exportarExcel() {
+            alert('Exportación a Excel - Próximamente');
+        }
+
+        async function exportarPDF() {
+            alert('Exportación a PDF - Próximamente');
+        }
+
+        function mostrarError(msg) {
+            console.error(msg);
+        }
     </script>
 </body>
 </html>
